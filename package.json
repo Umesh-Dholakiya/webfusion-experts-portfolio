@@ -4,8 +4,7 @@
   "description": "WebFusion Experts Portfolio Website",
   "main": "dashboard.html",
   "scripts": {
-    "dev": "live-server --port=5500 --open=/dashboard.html --watch=.",
-    "start": "live-server --port=5500 --open=/dashboard.html --watch=."
+    "build": "echo \"static site\""
   },
   "keywords": [],
   "author": "",
@@ -14,4 +13,3 @@
     "live-server": "^1.2.2"
   }
 }
-
