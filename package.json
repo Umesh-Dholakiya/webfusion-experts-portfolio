@@ -1,0 +1,17 @@
+{
+  "name": "portfolio",
+  "version": "1.0.0",
+  "description": "WebFusion Experts Portfolio Website",
+  "main": "dashboard.html",
+  "scripts": {
+    "dev": "live-server --port=5500 --open=/dashboard.html --watch=.",
+    "start": "live-server --port=5500 --open=/dashboard.html --watch=."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
+
