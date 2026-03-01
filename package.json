@@ -1,15 +1,20 @@
 {
-  "name": "portfolio",
-  "version": "1.0.0",
-  "description": "WebFusion Experts Portfolio Website",
-  "main": "dashboard.html",
-  "scripts": {
-    "build": "echo \"static site\""
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "live-server": "^1.2.2"
-  }
+    "name": "webfusion-portfolio",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node server.js",
+        "serve": "node server.js",
+        "watch": "node server.js"
+    },
+    "dependencies": {
+        "dotenv": "^17.3.1",
+        "express": "^4.22.1",
+        "nodemailer": "^8.0.1",
+        "open": "^11.0.0"
+    },
+    "devDependencies": {
+        "chokidar": "^4.0.3"
+    }
 }
