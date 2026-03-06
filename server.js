@@ -81,45 +81,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files
+// Serve static files (css, js, img, fonts, video)
+// This MUST come first to serve all static assets properly
 app.use(express.static(__dirname));
-
-// File watcher for auto-reload
-import { watch } from 'fs';
-
-// Watch for file changes in the project directory
-const watchFiles = ['.html', '.css', '.js', '.json'];
-let isReloading = false;
-
-function notifyClients() {
-  if (isReloading) return;
-  isReloading = true;
-  
-  clients.forEach(client => {
-    client.write('data: reload\n\n');
-  });
-  
-  setTimeout(() => {
-    isReloading = false;
-  }, 1000); // Prevent multiple reloads within 1 second
-}
-
-// Watch all relevant directories
-const dirsToWatch = [__dirname];
-
-dirsToWatch.forEach(dir => {
-  try {
-    watch(dir, { recursive: true }, (eventType, filename) => {
-      if (filename && watchFiles.some(ext => filename.endsWith(ext))) {
-        console.log(`📝 File changed: ${filename}`);
-        notifyClients();
-      }
-    });
-    console.log(`👁️  Watching: ${dir}`);
-  } catch (error) {
-    console.log(`⚠️  Could not watch directory ${dir}: ${error.message}`);
-  }
-});
 
 // API routes
 app.use("/api", express.json());
@@ -347,14 +311,115 @@ app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, requestedPath));
 });
 
+// Handle 404 for API routes
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "API endpoint not found" });
+});
+
+// Clean URL Routing - Serve HTML pages without .html extension
+// This must be placed AFTER static middleware and API routes
+app.get("/*", (req, res) => {
+  const requestedPath = req.path;
+  
+  // Skip routing for paths that look like static assets (have file extensions or are in asset directories)
+  const hasFileExtension = /\.[a-zA-Z0-9]{2,4}$/.test(requestedPath);
+  const isAssetDirectory = ['/img/', '/css/', '/js/', '/fonts/', '/video/', '/favicon/'].some(dir => 
+    requestedPath.includes(dir)
+  );
+  
+  // If it's a static asset request, don't handle it here (static middleware already tried)
+  if (hasFileExtension || isAssetDirectory) {
+    return res.status(404).send('Resource not found');
+  }
+  
+  // Root path - serve dashboard.html
+  if (requestedPath === '/') {
+    return res.sendFile(path.join(__dirname, "dashboard.html"));
+  }
+  
+  // List of all valid HTML pages in your portfolio
+  const validPages = [
+    'dashboard',
+    'contact', 
+    'projects',
+    'case-study',
+    'about-company',
+    'our-services',
+    'meet-the-team'
+  ];
+  
+  // Remove leading slash and check if it's a valid page
+  const cleanPath = requestedPath.replace(/^\//, '');
+  
+  // Check if this is a valid page
+  if (validPages.includes(cleanPath)) {
+    const htmlFilePath = path.join(__dirname, `${cleanPath}.html`);
+    
+    // Check if the .html file exists
+    if (fs.existsSync(htmlFilePath)) {
+      return res.sendFile(htmlFilePath);
+    }
+  }
+  
+  // If no matching .html file found, return 404 (only log actual page requests, not assets)
+  if (!isAssetDirectory && !hasFileExtension) {
+    console.log(`❌ 404 - Page not found: ${requestedPath}`);
+  }
+  
+  res.status(404).sendFile(path.join(__dirname, "404.html")) || res.status(404).send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>404 - Page Not Found</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        .error-container {
+          text-align: center;
+        }
+        h1 {
+          font-size: 6rem;
+          margin: 0;
+        }
+        p {
+          font-size: 1.5rem;
+        }
+        a {
+          color: #fff;
+          text-decoration: underline;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="error-container">
+        <h1>404</h1>
+        <p>Page Not Found</p>
+        <p><a href="/">Go Back Home</a></p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.use(express.json({ limit: "10kb" }));
+
 // Handle server startup with proper error handling
 const server = app.listen(PORT, () => {
   console.log('\x1b[36m%s\x1b[0m', '🚀 Portfolio Website is starting...');
   console.log('\x1b[32m%s\x1b[0m', `✅ Server running on: http://localhost:${PORT}`);
   console.log('\x1b[33m%s\x1b[0m', `🌐 Open your browser and navigate to: http://localhost:${PORT}`);
+  console.log('\x1b[35m%s\x1b[0m', `📄 Clean URLs enabled: /dashboard, /contact, /about-company, etc.`);
 });
-
-app.use(express.json({ limit: "10kb" }));
 
 
 // Handle server errors
