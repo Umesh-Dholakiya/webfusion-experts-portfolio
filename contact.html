@@ -287,23 +287,35 @@
                         <div class="container-fluid p-0">
                           <div class="row gx-0">
                             <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up">
-                              <input type="text" name="Name" placeholder="Your name*" required>
+                              <input type="text" name="Name" placeholder="Your name*" required autocomplete="off">
                             </div>
                             <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up">
-                              <input type="text" name="Company" placeholder="Company name" required>
+                              <input type="text" name="Company" placeholder="Company name" required autocomplete="off">
                             </div>
                             <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up">
-                              <input type="email" name="E_mail" placeholder="Email*" required>
+                              <input type="email" name="E_mail" placeholder="Email*" required autocomplete="off">
                             </div>
                             <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up">
-                              <input type="tel" name="Phone" placeholder="Phone" required>
+                              <input type="tel" name="Phone" placeholder="Phone*" maxlength="10" pattern="\d{10}" required autocomplete="off">
+                            </div>
+                            <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up">
+                              <select name="Service" id="service-select" required>
+                                <option value="">Select Service*</option>
+                                <option value="Website Development">Website Development</option>
+                                <option value="CRM System">CRM System</option>
+                                <option value="Custom Software Development">Custom Software Development</option>
+                                <option value="Mobile Applications Development">Mobile Applications Development</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div class="col-12 col-md-6 mxd-grid-item anim-uni-in-up" id="other-service-container" style="display: none;">
+                              <input type="text" name="OtherService" id="other-service-input" placeholder="Please specify service" autocomplete="off">
                             </div>
                             <div class="col-12 mxd-grid-item anim-uni-in-up">
-                              <textarea name="Message" placeholder="A few words about your project*"
-                                required></textarea>
+                              <textarea name="Message" placeholder="A few words about your project*" required></textarea>
                             </div>
                             <div class="col-12 mxd-grid-item anim-uni-in-up">
-                              <button class="btn btn-anim btn-default btn-large btn-opposite slide-right-up"
+                              <button class="btn btn-default btn-large btn-opposite slide-right-up no-hover-btn"
                                 type="submit">
                                 <span class="btn-caption">Submit</span>
                                 <i class="ph-bold ph-arrow-up-right"></i>
@@ -536,7 +548,7 @@
     <!-- Section - Text Block End -->
 
     <!-- Section - CTA Start -->
-    <div class="mxd-section overflow-hidden">
+     <div class="mxd-section overflow-hidden">
       <div class="mxd-container">
 
         <!-- CTA Block -->
@@ -561,20 +573,20 @@
 
             <div class="mxd-cta-modern__services">
               <div class="cta-service-card">
-                <img src="./img/icons/web-dev.png" alt="Web Development">
-                <p>Website Development</p>
+                <img src="./img/icons/web-dev.png" alt="Web Development" class="mx-auto">
+                <p>Full Stack Web Development</p>
               </div>
               <div class="cta-service-card">
-                <img src="./img/icons/mobile-app.png" alt="Mobile Apps">
+                <img src="./img/icons/mobile-app.png" alt="Mobile Apps" class="mx-auto">
                 <p>Mobile Applications Development</p>
               </div>
               <div class="cta-service-card">
-                <img src="./img/icons/software.png" alt="Software">
+                <img src="./img/icons/software.png" alt="Software" class="mx-auto">
                 <p>Custom Software Development</p>
               </div>
               <div class="cta-service-card">
-                <img src="./img/icons/crm.png" alt="CRM">
-                <p>Custom CRM System</p>
+                <img src="./img/icons/crm.png" alt="CRM" class="mx-auto">
+                <p>Custom CRM Management System</p>
               </div>
             </div>
 
@@ -793,6 +805,7 @@
   <script src="js/app.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/contact.js"></script>
+  <script src="js/subscription.js"></script>
 
   <!-- Load Scripts End -->
 
