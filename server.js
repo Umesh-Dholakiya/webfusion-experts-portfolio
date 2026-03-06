@@ -1,8 +1,8 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 import dotenv from "dotenv";
-import open from "open";
 import nodemailer from "nodemailer";
 import connectDB from "./config/db.js";
 import Contact from "./models/Contact.js";
@@ -47,16 +47,30 @@ app.use((req, res, next) => {
       if (typeof body === 'string' && body.includes('</body>')) {
         const livereloadScript = `
           <script>
-            const es = new EventSource('/livereload');
-            es.onmessage = function(event) {
-              if (event.data === 'reload') {
-                console.log('File changed, reloading page...');
-                window.location.reload();
-              }
-            };
-            es.onerror = function(event) {
-              console.log('Livereload disconnected');
-            };
+            (function() {
+              // Connect to server-side event stream
+              const es = new EventSource('/livereload');
+              
+              es.onmessage = function(event) {
+                if (event.data === 'reload') {
+                  console.log('🔄 File changed, reloading page...');
+                  // Reload in the SAME tab (no new window)
+                  window.location.reload();
+                }
+              };
+              
+              es.onerror = function(event) {
+                console.log('⚠️  Livereload disconnected');
+                es.close();
+              };
+              
+              // Clean up on page unload
+              window.addEventListener('beforeunload', function() {
+                es.close();
+              });
+              
+              console.log('✅ Livereload connected - auto-refresh enabled');
+            })();
           </script>
         `;
         body = body.replace('</body>', `${livereloadScript}</body>`);
@@ -69,6 +83,43 @@ app.use((req, res, next) => {
 
 // Serve static files
 app.use(express.static(__dirname));
+
+// File watcher for auto-reload
+import { watch } from 'fs';
+
+// Watch for file changes in the project directory
+const watchFiles = ['.html', '.css', '.js', '.json'];
+let isReloading = false;
+
+function notifyClients() {
+  if (isReloading) return;
+  isReloading = true;
+  
+  clients.forEach(client => {
+    client.write('data: reload\n\n');
+  });
+  
+  setTimeout(() => {
+    isReloading = false;
+  }, 1000); // Prevent multiple reloads within 1 second
+}
+
+// Watch all relevant directories
+const dirsToWatch = [__dirname];
+
+dirsToWatch.forEach(dir => {
+  try {
+    watch(dir, { recursive: true }, (eventType, filename) => {
+      if (filename && watchFiles.some(ext => filename.endsWith(ext))) {
+        console.log(`📝 File changed: ${filename}`);
+        notifyClients();
+      }
+    });
+    console.log(`👁️  Watching: ${dir}`);
+  } catch (error) {
+    console.log(`⚠️  Could not watch directory ${dir}: ${error.message}`);
+  }
+});
 
 // API routes
 app.use("/api", express.json());
@@ -273,23 +324,34 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
 });
 
-// Serve other HTML files
-app.get("/*.html", (req, res) => {
-  res.sendFile(path.join(__dirname, req.url));
+// Serve other HTML files with clean URLs (without .html extension)
+app.get("/*", (req, res) => {
+  const requestedPath = req.path;
+  
+  // If requesting root or dashboard, serve dashboard.html
+  if (requestedPath === '/' || requestedPath === '/dashboard') {
+    return res.sendFile(path.join(__dirname, "dashboard.html"));
+  }
+  
+  // Check if it's a clean URL path (like /about-company, /contact, etc.)
+  // Try to find corresponding .html file
+  const htmlFilePath = requestedPath + '.html';
+  const fullPath = path.join(__dirname, htmlFilePath);
+  
+  // Check if file exists
+  if (fs.existsSync(fullPath)) {
+    return res.sendFile(fullPath);
+  }
+  
+  // If no .html file found, try serving the original path (for other resources)
+  res.sendFile(path.join(__dirname, requestedPath));
 });
 
 // Handle server startup with proper error handling
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, () => {
   console.log('\x1b[36m%s\x1b[0m', '🚀 Portfolio Website is starting...');
   console.log('\x1b[32m%s\x1b[0m', `✅ Server running on: http://localhost:${PORT}`);
-  
-  // Automatically open browser after server starts
-  try {
-    await open(`http://localhost:${PORT}`);
-    console.log('\x1b[33m%s\x1b[0m', `🌐 Browser opened: http://localhost:${PORT}`);
-  } catch (error) {
-    console.log('\x1b[33m%s\x1b[0m', `⚠️  Could not auto-open browser. Please open manually: http://localhost:${PORT}`);
-  }
+  console.log('\x1b[33m%s\x1b[0m', `🌐 Open your browser and navigate to: http://localhost:${PORT}`);
 });
 
 app.use(express.json({ limit: "10kb" }));

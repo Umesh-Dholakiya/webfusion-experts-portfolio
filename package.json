@@ -11,8 +11,7 @@
     "express": "^4.22.1",
     "mongodb": "^6.21.0",
     "mongoose": "^8.23.0",
-    "nodemailer": "^8.0.1",
-    "open": "^11.0.0"
+    "nodemailer": "^8.0.1"
   },
   "devDependencies": {
     "connect-livereload": "^0.6.1",

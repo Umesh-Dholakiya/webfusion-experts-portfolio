@@ -630,21 +630,26 @@ $(function() {
   // --------------------------------------------- //
   // Contact Form Start
   // --------------------------------------------- //
-  $("#contact-form").submit(function() { //Change
+  $("#contact-form").submit(function() {
     var th = $(this);
     $.ajax({
       type: "POST",
-      url: "mail.php", //Change
-      data: th.serialize()
-    }).done(function() {
-      $('.contact').find('.form').addClass('is-hidden');
-      $('.contact').find('.form__reply').addClass('is-visible');
-      setTimeout(function() {
-        // Done Functions
-        $('.contact').find('.form__reply').removeClass('is-visible');
-        $('.contact').find('.form').delay(300).removeClass('is-hidden');
-        th.trigger("reset");
-      }, 5000);
+      url: "/api/contact",
+      data: th.serialize(),
+      success: function(response) {
+        $('.contact').find('.form').addClass('is-hidden');
+        $('.contact').find('.form__reply').addClass('is-visible');
+        setTimeout(function() {
+          $('.contact').find('.form__reply').removeClass('is-visible');
+          $('.contact').find('.form').delay(300).removeClass('is-hidden');
+          th.trigger("reset");
+        }, 5000);
+      },
+      error: function(xhr, status, error) {
+        console.error('Contact form submission error:', error);
+        alert('There was an error submitting your message. Please try again.');
+        $('.contact').find('.form').removeClass('is-hidden');
+      }
     });
     return false;
   });
