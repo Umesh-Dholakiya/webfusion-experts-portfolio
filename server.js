@@ -20,7 +20,9 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Livereload setup
+// ============================================
+// LIVERELOAD SETUP - Auto refresh on file changes
+// ============================================
 let clients = [];
 
 app.use('/livereload', (req, res) => {
@@ -38,8 +40,7 @@ app.use('/livereload', (req, res) => {
   });
 });
 
-
-// Middleware to inject livereload script into HTML files
+// Inject livereload script into HTML files
 app.use((req, res, next) => {
   if (req.headers.accept && req.headers.accept.includes('text/html')) {
     const originalSend = res.send;
@@ -48,27 +49,20 @@ app.use((req, res, next) => {
         const livereloadScript = `
           <script>
             (function() {
-              // Connect to server-side event stream
               const es = new EventSource('/livereload');
-              
               es.onmessage = function(event) {
                 if (event.data === 'reload') {
                   console.log('🔄 File changed, reloading page...');
-                  // Reload in the SAME tab (no new window)
                   window.location.reload();
                 }
               };
-              
               es.onerror = function(event) {
                 console.log('⚠️  Livereload disconnected');
                 es.close();
               };
-              
-              // Clean up on page unload
               window.addEventListener('beforeunload', function() {
                 es.close();
               });
-              
               console.log('✅ Livereload connected - auto-refresh enabled');
             })();
           </script>
@@ -81,11 +75,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files (css, js, img, fonts, video)
-// This MUST come first to serve all static assets properly
+// ============================================
+// STATIC FILES - Serve CSS, JS, Images, Fonts, Videos
+// ============================================
 app.use(express.static(__dirname));
 
-// API routes
+// ============================================
+// API ROUTES - Backend endpoints
+// ============================================
 app.use("/api", express.json());
 
 // Add CORS headers for API routes
@@ -119,7 +116,7 @@ app.post("/api/contact", async (req, res) => {
     return res.status(400).json({ error: "Invalid name. Only letters and spaces allowed (2-50 characters)" });
   }
 
-  // Validate Phone - exactly 10 digits
+  // Validate Phone
   if (!phoneRegex.test(Phone)) {
     return res.status(400).json({ error: "Phone number must be exactly 10 digits" });
   }
@@ -163,59 +160,59 @@ app.post("/api/contact", async (req, res) => {
   // Prepare email content
   const serviceText = OtherService ? `${Service} (${OtherService})` : Service;
   
-const mailOptions = {
-  from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-  to: process.env.EMAIL_USER,
-  replyTo: E_mail,
-  subject: `🚀 New Contact Form Submission`,
-  html: `
-  <div style="font-family: Arial, sans-serif; background-color:#f4f6f8; padding:30px 15px;">
-    
-    <div style="max-width:650px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 5px 20px rgba(0,0,0,0.08);">
+  const mailOptions = {
+    from: `"Website Contact" <${process.env.EMAIL_USER}>`,
+    to: process.env.EMAIL_USER,
+    replyTo: E_mail,
+    subject: `🚀 New Contact Form Submission`,
+    html: `
+    <div style="font-family: Arial, sans-serif; background-color:#f4f6f8; padding:30px 15px;">
       
-      <!-- Header -->
-      <div style="background:linear-gradient(90deg,#0f2027,#203a43,#2c5364); padding:25px; text-align:center;">
-        <h2 style="color:#ffffff; margin:0; font-size:22px; letter-spacing:0.5px;">
-          📩 Contact Form Submission
-        </h2>
+      <div style="max-width:650px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 5px 20px rgba(0,0,0,0.08);">
+        
+        <!-- Header -->
+        <div style="background:linear-gradient(90deg,#0f2027,#203a43,#2c5364); padding:25px; text-align:center;">
+          <h2 style="color:#ffffff; margin:0; font-size:22px; letter-spacing:0.5px;">
+            📩 Contact Form Submission
+          </h2>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:25px 30px;">
+
+          ${createRow("👤 Name", Name)}
+          ${createRow("🏢 Company", Company || "Not specified")}
+          ${createRow("📧 Email", `<a href="mailto:${E_mail}" style="color:#007bff; text-decoration:none;">${E_mail}</a>`)}
+          ${createRow("📞 Phone", `<a href="tel:+91${Phone}" style="color:#333; text-decoration:none;">+91 ${Phone}</a>`)}
+          ${createRow("🛠 Service", serviceText || "Not selected")}
+          ${createRow("💬 Message", Message)}
+
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#f4f6f8; padding:18px; text-align:center; font-size:13px; color:#777;">
+          <p style="margin:0;">
+            This message was sent from your website contact form.
+          </p>
+          <p style="margin:5px 0 0 0;">
+            © 2026 WebFusion Experts
+          </p>
+        </div>
+
       </div>
-
-      <!-- Body -->
-      <div style="padding:25px 30px;">
-
-        ${createRow("👤 Name", Name)}
-        ${createRow("🏢 Company", Company || "Not specified")}
-        ${createRow("📧 Email", `<a href="mailto:${E_mail}" style="color:#007bff; text-decoration:none;">${E_mail}</a>`)}
-        ${createRow("📞 Phone", `<a href="tel:+91${Phone}" style="color:#333; text-decoration:none;">+91 ${Phone}</a>`)}
-        ${createRow("🛠 Service", serviceText || "Not selected")}
-        ${createRow("💬 Message", Message)}
-
-      </div>
-
-      <!-- Footer -->
-      <div style="background:#f4f6f8; padding:18px; text-align:center; font-size:13px; color:#777;">
-        <p style="margin:0;">
-          This message was sent from your website contact form.
-        </p>
-        <p style="margin:5px 0 0 0;">
-          © 2026 WebFusion Experts
-        </p>
-      </div>
-
     </div>
-  </div>
-  `
-};
+    `
+  };
 
-// Helper function for rows
-function createRow(label, value) {
-  return `
-    <div style="padding:14px 0; border-bottom:1px solid #eaeaea; display:flex;">
-      <div style="width:140px; font-weight:bold; color:#555;">${label}</div>
-      <div style="flex:1; color:#333;">${value}</div>
-    </div>
-  `;
-}
+  // Helper function for rows
+  function createRow(label, value) {
+    return `
+      <div style="padding:14px 0; border-bottom:1px solid #eaeaea; display:flex;">
+        <div style="width:140px; font-weight:bold; color:#555;">${label}</div>
+        <div style="flex:1; color:#333;">${value}</div>
+      </div>
+    `;
+  }
 
   // Send email
   try {
@@ -283,32 +280,13 @@ app.post("/api/subscribe", async (req, res) => {
   }
 });
 
-// Serve index.html for root
+// ============================================
+// PAGE ROUTING - Clean URLs (No .html extension)
+// ============================================
+
+// Root route - serves dashboard.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "dashboard.html"));
-});
-
-// Serve other HTML files with clean URLs (without .html extension)
-app.get("/*", (req, res) => {
-  const requestedPath = req.path;
-  
-  // If requesting root or dashboard, serve dashboard.html
-  if (requestedPath === '/' || requestedPath === '/dashboard') {
-    return res.sendFile(path.join(__dirname, "dashboard.html"));
-  }
-  
-  // Check if it's a clean URL path (like /about-company, /contact, etc.)
-  // Try to find corresponding .html file
-  const htmlFilePath = requestedPath + '.html';
-  const fullPath = path.join(__dirname, htmlFilePath);
-  
-  // Check if file exists
-  if (fs.existsSync(fullPath)) {
-    return res.sendFile(fullPath);
-  }
-  
-  // If no .html file found, try serving the original path (for other resources)
-  res.sendFile(path.join(__dirname, requestedPath));
 });
 
 // Handle 404 for API routes
@@ -316,18 +294,17 @@ app.use("/api", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
 });
 
-// Clean URL Routing - Serve HTML pages without .html extension
-// This must be placed AFTER static middleware and API routes
+// Clean URL routing for all HTML pages
 app.get("/*", (req, res) => {
   const requestedPath = req.path;
   
-  // Skip routing for paths that look like static assets (have file extensions or are in asset directories)
+  // Skip routing for static assets (images, css, js, fonts, videos)
   const hasFileExtension = /\.[a-zA-Z0-9]{2,4}$/.test(requestedPath);
   const isAssetDirectory = ['/img/', '/css/', '/js/', '/fonts/', '/video/', '/favicon/'].some(dir => 
     requestedPath.includes(dir)
   );
   
-  // If it's a static asset request, don't handle it here (static middleware already tried)
+  // If it's a static asset request, don't handle it here
   if (hasFileExtension || isAssetDirectory) {
     return res.status(404).send('Resource not found');
   }
@@ -361,7 +338,7 @@ app.get("/*", (req, res) => {
     }
   }
   
-  // If no matching .html file found, return 404 (only log actual page requests, not assets)
+  // If no matching .html file found, return 404 (only log actual page requests)
   if (!isAssetDirectory && !hasFileExtension) {
     console.log(`❌ 404 - Page not found: ${requestedPath}`);
   }
@@ -411,16 +388,16 @@ app.get("/*", (req, res) => {
   `);
 });
 
+// JSON middleware
 app.use(express.json({ limit: "10kb" }));
 
-// Handle server startup with proper error handling
+// ============================================
+// SERVER STARTUP
+// ============================================
 const server = app.listen(PORT, () => {
   console.log('\x1b[36m%s\x1b[0m', '🚀 Portfolio Website is starting...');
   console.log('\x1b[32m%s\x1b[0m', `✅ Server running on: http://localhost:${PORT}`);
-  console.log('\x1b[33m%s\x1b[0m', `🌐 Open your browser and navigate to: http://localhost:${PORT}`);
-  console.log('\x1b[35m%s\x1b[0m', `📄 Clean URLs enabled: /dashboard, /contact, /about-company, etc.`);
 });
-
 
 // Handle server errors
 server.on('error', (err) => {
