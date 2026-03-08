@@ -282,8 +282,6 @@ form.addEventListener("submit", async (e) => {
   };
 
   try {
-    // Log the complete request
-
     const response = await fetch("/api/contact", {
       method: "POST",
       headers: {
@@ -292,18 +290,31 @@ form.addEventListener("submit", async (e) => {
       body: JSON.stringify(data),
     });
 
-
-
     // First check if response is OK
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Response error text:", errorText);
-      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      // Try to get error message from response
+      let errorMessage = 'Server error';
+      try {
+        const errorText = await response.text();
+        console.error("Response error text:", errorText);
+        
+        // Try to parse as JSON for better error message
+        if (errorText) {
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error || errorMessage;
+          } catch (e) {
+            // Not JSON, use as is
+            errorMessage = errorText;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to read error response:", e);
+      }
+      throw new Error(errorMessage);
     }
 
     // Check if response has content
-    const contentLength = response.headers.get("content-length");
-
     const responseText = await response.text();
 
     // Check if response is empty
@@ -317,10 +328,10 @@ form.addEventListener("submit", async (e) => {
       result = JSON.parse(responseText);
     } catch (jsonError) {
       console.error("JSON parsing failed:", jsonError);
-      throw new Error(`Invalid JSON response: ${jsonError.message}`);
+      throw new Error(`Invalid JSON response from server`);
     }
 
-    if (response.ok) {
+    if (result.success) {
       // Show success toast for 2 seconds
       showSuccess("Message sent successfully! We'll get back to you soon.", 4000);
 
@@ -332,6 +343,10 @@ form.addEventListener("submit", async (e) => {
     } else {
       // Show error toast with specific message
       showError(` ${result.error || "Something went wrong!"}`);
+      // Re-enable button on error
+      submitButton.disabled = false;
+      submitButton.classList.remove('btn-loading');
+      captionElement.textContent = originalText;
     }
   } catch (error) {
     console.error("Contact form error:", error);
@@ -344,12 +359,20 @@ form.addEventListener("submit", async (e) => {
     captionElement.textContent = originalText;
     
     // Show specific error message based on the error type
+    let displayMessage = error.message || "Please try again later.";
+    
     if (error.name === "TypeError" && error.message.includes("fetch")) {
-      showError(" Network error. Please check your internet connection.");
+      displayMessage = "Network error. Please check your internet connection.";
     } else if (error.message && error.message.includes("Contact service unavailable")) {
-      showError(" Contact service is temporarily unavailable. Please try again later.");
-    } else {
-      showError(`Server error: ${error.message || "Please try again later."}`);
+      displayMessage = "Contact service is temporarily unavailable. Please try again later.";
+    } else if (error.message && error.message.includes("authentication")) {
+      displayMessage = "Email configuration error. Please contact support.";
+    } else if (error.message && error.message.includes("Network error")) {
+      displayMessage = "Network error. Please check your connection and try again.";
+    } else if (error.message && error.message.includes("Empty response")) {
+      displayMessage = "Server did not respond. Please try again.";
     }
+    
+    showError(` ${displayMessage}`);
   }
 });

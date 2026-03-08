@@ -101,7 +101,7 @@ app.use("/api", (req, res, next) => {
 app.post("/api/contact", async (req, res) => {
   const { Name, Company, E_mail, Phone, Message, Service, OtherService } = req.body;
 
-  // Check required fields
+  // Check required fields (Company is optional)
   if (!Name || !E_mail || !Phone || !Message || !Service) {
     return res.status(400).json({ error: "All required fields are mandatory" });
   }
@@ -134,6 +134,7 @@ app.post("/api/contact", async (req, res) => {
   // Validate Service selection
   const validServices = ["Website Development", "CRM System", "Custom Software Development", "Mobile Applications Development", "Other"];
   if (!validServices.includes(Service)) {
+    console.error('Invalid service selected:', Service);
     return res.status(400).json({ error: "Please select a valid service" });
   }
 
@@ -216,26 +217,48 @@ app.post("/api/contact", async (req, res) => {
 
   // Send email
   try {
+    console.log('Attempting to send email to:', process.env.EMAIL_USER);
+    console.log('Email auth user:', process.env.EMAIL_USER ? 'configured' : 'NOT configured');
+    console.log('Email auth pass:', process.env.EMAIL_PASS ? 'configured' : 'NOT configured');
+    
     await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent successfully to ${process.env.EMAIL_USER} from ${Name}`);
     
     // Save to MongoDB
-    const newContact = await Contact.create({
-      name: Name,
-      company: Company || 'Not specified',
-      email: E_mail,
-      phone: Phone,
-      service: Service,
-      otherService: OtherService || '',
-      message: Message
-    });
+    try {
+      const newContact = await Contact.create({
+        name: Name,
+        company: Company || 'Not specified',
+        email: E_mail,
+        phone: Phone,
+        service: Service,
+        otherService: OtherService || '',
+        message: Message
+      });
+      console.log(`💾 Contact saved to MongoDB: ${newContact._id}`);
+    } catch (dbError) {
+      console.error('⚠️ MongoDB save failed but email was sent:', dbError.message);
+      // Don't fail the request if only DB fails
+    }
     
-    console.log(`💾 Contact saved to MongoDB: ${newContact._id}`);
     res.status(200).json({ success: true, message: "Message received successfully" });
   } catch (error) {
     console.error('❌ Email sending failed:', error);
-    console.error('Error details:', error.message);
-    res.status(500).json({ error: "Failed to send email. Please try again later." });
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to send email. Please try again later.";
+    if (error.code === 'EAUTH' || (error.message && error.message.includes('authentication'))) {
+      errorMessage = "Email authentication failed. Please contact support.";
+    } else if (error.code === 'ENETWORK' || (error.message && error.message.includes('network'))) {
+      errorMessage = "Network error. Please check your connection and try again.";
+    } else if (error.code === 'ESOCKET' || (error.message && error.message.includes('socket'))) {
+      errorMessage = "Connection error. Please try again later.";
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
