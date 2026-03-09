@@ -143,19 +143,39 @@ app.post("/api/contact", async (req, res) => {
     return res.status(400).json({ error: "Please specify the other service" });
   }
 
-  // Create email transporter
+  // Create email transporter with verification
   let transporter;
   try {
-    transporter = nodemailer.createTransport({
+    console.log('📧 Setting up email transporter...');
+    
+    transporter= nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+      rejectUnauthorized: false
+      }
+    });
+    
+    // Verify transporter before using
+    await new Promise((resolve, reject) => {
+      transporter.verify((error, success) => {
+      if (error) {
+          console.error('❌ Email verification failed:', error.message);
+        reject(error);
+        } else {
+          console.log('✅ Email server ready to send messages');
+        resolve(success);
+        }
+      });
     });
   } catch (error) {
-    console.error('Email transporter error:', error);
-    return res.status(500).json({ error: "Email service configuration failed" });
+    console.error('❌ Email transporter setup failed:', error.message);
+  return res.status(500).json({ 
+      error: "Email service unavailable. Contact us at info@webfusionexperts.in" 
+    });
   }
 
   // Prepare email content
@@ -217,14 +237,12 @@ app.post("/api/contact", async (req, res) => {
 
   // Send email
   try {
-    console.log('Attempting to send email to:', process.env.EMAIL_USER);
-    console.log('Email auth user:', process.env.EMAIL_USER ? 'configured' : 'NOT configured');
-    console.log('Email auth pass:', process.env.EMAIL_PASS ? 'configured' : 'NOT configured');
+    console.log('📤 Sending email from:', Name, '| Email:', E_mail);
     
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully to ${process.env.EMAIL_USER} from ${Name}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
     
-    // Save to MongoDB
+    // Save to MongoDB (non-blocking)
     try {
       const newContact = await Contact.create({
         name: Name,
@@ -238,27 +256,30 @@ app.post("/api/contact", async (req, res) => {
       console.log(`💾 Contact saved to MongoDB: ${newContact._id}`);
     } catch (dbError) {
       console.error('⚠️ MongoDB save failed but email was sent:', dbError.message);
-      // Don't fail the request if only DB fails
     }
     
-    res.status(200).json({ success: true, message: "Message received successfully" });
+  res.status(200).json({ success: true, message: "Message received successfully" });
   } catch (error) {
     console.error('❌ Email sending failed:', error);
-    console.error('Error name:', error.name);
+    console.error('Error code:', error.code);
     console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
     
-    // Provide more specific error messages
+    // Specific error messages
     let errorMessage = "Failed to send email. Please try again later.";
-    if (error.code === 'EAUTH' || (error.message && error.message.includes('authentication'))) {
-      errorMessage = "Email authentication failed. Please contact support.";
-    } else if (error.code === 'ENETWORK' || (error.message && error.message.includes('network'))) {
-      errorMessage = "Network error. Please check your connection and try again.";
-    } else if (error.code === 'ESOCKET' || (error.message && error.message.includes('socket'))) {
-      errorMessage = "Connection error. Please try again later.";
+    
+  if (error.code === 'EAUTH') {
+      errorMessage = "Email authentication failed. Check Gmail App Password settings.";
+      console.error('🔐 EAUTH Error- Invalid credentials or missing App Password');
+    } else if (error.message.includes('Invalid login')) {
+      errorMessage = "Gmail login failed. Generate an App Password at myaccount.google.com/apppasswords";
+      console.error('🔐 Invalid Login - Need Gmail App Password');
+    } else if (error.message.includes('rate limit')) {
+      errorMessage = "Too many emails sent. Please wait and try again later.";
+    } else if (error.message.includes('blocked')) {
+      errorMessage = "Email temporarily blocked. Contact support.";
     }
     
-    res.status(500).json({ error: errorMessage });
+  res.status(500).json({ error: errorMessage });
   }
 });
 
