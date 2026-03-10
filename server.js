@@ -58,8 +58,6 @@ const transporter= nodemailer.createTransport({
 transporter.verify((error, success) => {
   if (error) {
     console.log("❌ Email config error:", error.message);
-    console.log('⚠️  Email sending will not work until Gmail App Password is configured');
-    console.log('💡 To fix: Create a Gmail App Password at https://myaccount.google.com/apppasswords');
   } else {
     console.log("✅ Email server ready");
   }
@@ -177,23 +175,33 @@ app.post("/api/contact", async (req, res) => {
     // SEND EMAIL
     // ===============================
 
-    await transporter.sendMail(mailOptions)
-      .then(() => console.log("Email sent"))
-      .catch(err => console.log("Email error", err));
+   try {
+      await transporter.sendMail(mailOptions);
+     console.log("✅ Email sent successfully");
+    } catch (emailError) {
+     console.error("❌ Email sending failed:", emailError.message);
+      // Continue execution even if email fails - we still want to save to DB
+    }
 
     // ===============================
     // SAVE TO DATABASE
     // ===============================
 
-    await Contact.create({
-      name: Name,
-      company: Company || "Not specified",
-      email: E_mail,
-      phone: Phone,
-      service: Service,
-      otherService: OtherService || "",
-      message: Message
-    }).catch(err => console.log("DB error", err));
+   try {
+     const newContact = await Contact.create({
+        name: Name,
+       company: Company || "Not specified",
+        email: E_mail,
+        phone: Phone,
+        service: Service,
+        otherService: OtherService || "",
+        message: Message
+      });
+     console.log("✅ Contact saved to database:", newContact._id);
+    } catch (dbError) {
+     console.error("❌ Database save failed:", dbError.message);
+      // Continue execution - email was already sent
+    }
 
     return res.status(200).json({
       success: true,

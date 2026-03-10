@@ -241,19 +241,21 @@ form.addEventListener("submit", async (e) => {
 
 
   try {
-   const controller = new AbortController();
-   const timeout = setTimeout(() => controller.abort(), 25000);
+ const controller = new AbortController();
+   // Increased timeout to 60 seconds for Render (cold starts + email service)
+  const timeout = setTimeout(() => controller.abort('Request timeout'), 60000);
 
     // Determine API URL based on environment
-   const apiUrl = window.location.hostname === 'localhost' 
+  const apiUrl = window.location.hostname === 'localhost' 
       ? '/api/contact'  // Local: use relative path to local server
       : 'https://webfusion-backend-x422.onrender.com/api/contact'; // Production: use Render backend
 
-   const response = await fetch(apiUrl, {
+  const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-      signal: controller.signal
+      signal: controller.signal,
+      cache: 'no-cache'
     });
     clearTimeout(timeout);
 
@@ -298,15 +300,23 @@ form.addEventListener("submit", async (e) => {
     }, 2000)
 
   } catch (err) {
+  console.error('Contact form error:', err);
+    
+    // Handle AbortError specifically
+   let errorMessage = "Failed to send message";
+   if (err.name === 'AbortError') {
+     errorMessage = "Request timed out. Please try again or contact us directly.";
+    console.error('⏱️ Request timeout - server may be slow to respond');
+   } else if (err.message) {
+     errorMessage = err.message;
+   }
 
-    console.error(err)
+   showToast(errorMessage, "error")
 
-    showToast(err.message || "Failed to send message", "error")
+   submitBtn.disabled = false
+   submitBtn.classList.remove("btn-loading")
 
-    submitBtn.disabled = false
-    submitBtn.classList.remove("btn-loading")
-
-    caption.textContent = originalText
+   caption.textContent = originalText
 
   }
 
