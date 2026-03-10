@@ -20778,3 +20778,42 @@ form textarea:required:valid {
 /* ------------------------------------------------*/
 /* Features - Case Study End */
 /* ------------------------------------------------*/
+
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  padding: 14px 18px;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideIn .4s ease;
+}
+
+.toast-success {
+  background: #28a745;
+}
+
+.toast-error {
+  background: #f44336;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
