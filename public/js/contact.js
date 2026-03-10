@@ -241,23 +241,33 @@ form.addEventListener("submit", async (e) => {
 
 
   try {
+   const controller = new AbortController();
+   const timeout = setTimeout(() => controller.abort(), 25000);
 
-    const response = await fetch(
-      "https://webfusion-backend-x422.onrender.com/api/contact",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      }
-    )
+    // Determine API URL based on environment
+   const apiUrl = window.location.hostname === 'localhost' 
+      ? '/api/contact'  // Local: use relative path to local server
+      : 'https://webfusion-backend-x422.onrender.com/api/contact'; // Production: use Render backend
+
+   const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    // LOCAL DEVELOPMENT ENDPOINT (commented out - for reference only)
     // const response = await fetch(
     //   "/api/contact",
     //   {
     //     method: "POST",
     //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(data)
+    //     body: JSON.stringify(data),
+    //     signal: controller.signal
     //   }
-    // )
+    // );
+    // clearTimeout(timeout);
 
     const result = await response.json()
 

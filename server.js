@@ -22,31 +22,44 @@ const __dirname = path.dirname(__filename);
 // MIDDLEWARE
 // ===============================
 
-app.use(cors({ origin: "*" }));
+// LOCAL DEVELOPMENT CORS (commented out - for reference only)
+// app.use(cors({ origin: "*" }));
+
+// PRODUCTION CORS CONFIGURATION
+app.use(cors({ 
+  origin: ['http://localhost:8000', 'https://webfusion-backend-x422.onrender.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static("public"));
-
+app.use(express.static(path.join(__dirname, "public")));
 // ===============================
 // EMAIL TRANSPORTER
 // ===============================
 
-const transporter = nodemailer.createTransport({
+const transporter= nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
 // verify transporter
-transporter.verify((error) => {
+transporter.verify((error, success) => {
   if (error) {
-    console.log("❌ Email config error:", error);
+    console.log("❌ Email config error:", error.message);
+    console.log('⚠️  Email sending will not work until Gmail App Password is configured');
+    console.log('💡 To fix: Create a Gmail App Password at https://myaccount.google.com/apppasswords');
   } else {
     console.log("✅ Email server ready");
   }
@@ -164,7 +177,9 @@ app.post("/api/contact", async (req, res) => {
     // SEND EMAIL
     // ===============================
 
-    await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions)
+      .then(() => console.log("Email sent"))
+      .catch(err => console.log("Email error", err));
 
     // ===============================
     // SAVE TO DATABASE
@@ -178,14 +193,13 @@ app.post("/api/contact", async (req, res) => {
       service: Service,
       otherService: OtherService || "",
       message: Message
-    });
+    }).catch(err => console.log("DB error", err));
 
     return res.status(200).json({
       success: true,
       message: "Message sent successfully"
     });
 
-    console.log("Contact request:", req.body);
 
   } catch (error) {
 
